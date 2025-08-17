@@ -5,7 +5,8 @@
   "main": "./index.js",
   "exports": {
     "import": "./YahooFantasy.mjs",
-    "require": "./index.js"
+    "require": "./index.js",
+    "types": "./types.d.ts"
   },
   "scripts": {
     "test": "node -r esm jasmine-runner.js",

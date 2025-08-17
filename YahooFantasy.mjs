@@ -65,7 +65,22 @@ class YahooFantasy {
   }
 
   // oauth2 authenticatiocn function -- follow redirect to yahoo login
-  auth(res, state = null, scope = null) {
+  auth(configOrCallback, cb) {
+
+    let config = {};
+
+    if (typeof configOrCallback === 'function') {
+      cb = configOrCallback;
+    }
+    else {
+      config = configOrCallback || {};
+    }
+
+    if (!cb)
+      throw new Error(`Auth callback is required but got undefined.`);
+
+    const { state, scope } = config;
+
     const authData = {
       client_id: this.CONSUMER_KEY,
       redirect_uri: this.REDIRECT_URI,
@@ -95,16 +110,22 @@ class YahooFantasy {
       });
 
       authResponse.on("end", () => {
-        if (302 === authResponse.statusCode) {
-          res.redirect(authResponse.headers.location);
-        } else {
-          res.send(data);
-        }
+        cb(null, {
+          status: authResponse.statusCode,
+          redirectUri: authResponse.headers.location,
+          data,
+        })
+        // if (302 === authResponse.statusCode) {
+        //   res.redirect(authResponse.headers.location);
+        // } else {
+        //   res.send(data);
+        // }
       });
     });
 
     authRequest.on("error", (e) => {
-      throw new Error(e);
+      cb(e);
+      // throw new Error(e);
     });
 
     authRequest.end();
