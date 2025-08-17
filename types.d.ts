@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare module 'yahoo-fantasy' {
 
-	import type { IncomingMessage } from 'http';
-
 	export interface YahooAuthResult {
 		redirectUri?: string;
 		status?: number;
@@ -50,10 +48,10 @@ declare module 'yahoo-fantasy' {
 			redirectUri?: string
 		);
 		auth (callback: (result: YahooAuthResult) => void): void;
-		auth (config: { state: string, scope: string; }, callback: (result: YahooAuthResult) => void): void;
+		auth (config: { state: string, scope: string; }, callback: (error: null | Error, result?: YahooAuthResult) => void): void;
 		authCallback (
 			request: any,
-			callback: (error: Error, result: YahooAuthCallbackResult) => void
+			callback: (error: null | Error, result?: YahooAuthCallbackResult) => void
 		): void;
 		userInfo (callback: (error: Error, info?: YahooUserInfo) => void): void;
 		setUserToken (token: string): void;

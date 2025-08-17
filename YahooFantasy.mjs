@@ -105,7 +105,6 @@ class YahooFantasy {
     const authRequest = https.request(options, (authResponse) => {
       let data;
       authResponse.on("data", (chunk) => {
-        // process.stdout.write(d);
         data += chunk;
       });
 
