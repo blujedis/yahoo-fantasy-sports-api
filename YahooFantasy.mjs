@@ -108,27 +108,38 @@ class YahooFantasy {
       method: "GET",
     };
 
-    const authRequest = https.request(options, (authResponse) => {
-      let data = '';
-      authResponse.on("data", (chunk) => {
+    const request = https.request(options, (response) => {
+
+      let chunks = [];
+
+      response.on("data", (chunk) => {
+
         if (chunk)
-          data += chunk;
+          chunks.push(chunk);
+
       });
 
-      authResponse.on("end", () => {
+      response.on("end", () => {
+
+        const data = tryParseJSON(chunks);
+
+        if (data.error)
+          return cb(new Error(data.error + ': ' + data.error_description || ''));
+
         cb(null, {
-          status: authResponse.statusCode,
-          redirectUri: authResponse.headers.location,
+          status: response.statusCode,
+          redirectUri: response.headers.location,
           data,
         })
+
       });
     });
 
-    authRequest.on("error", (e) => {
+    request.on("error", (e) => {
       cb(e);
     });
 
-    authRequest.end();
+    request.end();
   }
 
   authCallback(req, cb) {
@@ -160,17 +171,22 @@ class YahooFantasy {
       },
     };
 
-    const tokenRequest = https.request(options, (tokenReponse) => {
+    const request = https.request(options, (response) => {
 
       const chunks = [];
 
-      tokenReponse.on("data", (chunk) => {
+      response.on("data", (chunk) => {
         if (chunk)
           chunks.push(chunk);
       });
 
-      tokenReponse.on("end", async () => {
+      response.on("end", async () => {
+
         const data = tryParseJSON(chunks);
+
+        if (data.error)
+          return cb(new Error(data.error + ': ' + data.error_description || ''));
+
         const { access_token, refresh_token, id_token } = data;
 
         this.yahooAccessToken = access_token;
@@ -182,20 +198,22 @@ class YahooFantasy {
           await this.refreshTokenCallback({
             access_token,
             refresh_token,
+            id_token
           });
         }
 
         cb(null, { ...data, state });
+
       });
     });
 
-    tokenRequest.on("error", (e) => {
+    request.on("error", (e) => {
       cb(e);
     });
 
     // tokenRequest.write(stringify(tokenData));
-    tokenRequest.write(toSearchParams(params));
-    tokenRequest.end();
+    request.write(toSearchParams(params));
+    request.end();
   }
 
   userInfo(cb) {
@@ -213,26 +231,42 @@ class YahooFantasy {
       }
     };
 
-    const authRequest = https.request(options, (authResponse) => {
+    const request = https.request(options, (response) => {
 
       const chunks = [];
 
-      authResponse.on("data", (chunk) => {
+      response.on("data", (chunk) => {
         if (chunk)
           chunks.push(chunk);
       });
 
-      authResponse.on("end", () => {
-        const json = tryParseJSON(chunks);
-        cb(null, json);
+      response.on("end", () => {
+        const data = tryParseJSON(chunks);
+
+        if (data.error) {
+
+          if (/"token_expired"/i.test(data.error.description || '')) {
+            return this.refreshToken((err, data) => {
+              if (err)
+                return cb(err);
+              return this.userInfo(cb);
+            });
+          }
+
+          cb(new Error(data.error + ': ' + data.error_description || ''));
+
+        }
+
+        cb(null, data);
+
       });
     });
 
-    authRequest.on("error", (e) => {
+    request.on("error", (e) => {
       cb(e);
     });
 
-    authRequest.end();
+    request.end();
   }
 
   setUserToken(token) {
@@ -268,35 +302,38 @@ class YahooFantasy {
       },
     };
 
-    const tokenRequest = https.request(options, (tokenReponse) => {
+    const request = https.request(options, (response) => {
 
       const chunks = [];
 
-      tokenReponse.on("data", (chunk) => {
+      response.on("data", (chunk) => {
         if (chunk)
           chunks.push(chunk);
       });
 
-      tokenReponse.on("end", async () => {
-        const tokenData = tryParseJSON(chunks);
+      response.on("end", async () => {
+        const data = tryParseJSON(chunks);
 
-        this.setUserToken(tokenData.access_token);
-        this.setRefreshToken(tokenData.refresh_token);
+        if (data.error)
+          return cb(new Error(data.error + ': ' + data.error_description || ''));
+
+        this.setUserToken(data.access_token);
+        this.setRefreshToken(data.refresh_token);
 
         // run the callback before moving on
         if (this.refreshTokenCallback)
-          await this.refreshTokenCallback(tokenData);
+          await this.refreshTokenCallback({ ...data, id_token: data.id_token || this.yahooIdToken });
 
-        cb(null, tokenData);
+        cb(null, data);
       });
     });
 
-    tokenRequest.on("error", (e) => {
+    request.on("error", (e) => {
       cb(e);
     });
 
-    tokenRequest.write(params);
-    tokenRequest.end();
+    request.write(params);
+    request.end();
   }
 
   api(...args) {
@@ -360,23 +397,23 @@ class YahooFantasy {
           });
 
           resp.on("end", () => {
-            const json = tryParseJSON(chunks);
+            const data = tryParseJSON(chunks);
 
-            if (json.error) {
-              if (/"token_expired"/i.test(json.error.description)) {
+            if (data.error) {
+              if (/"token_expired"/i.test(data.error.description)) {
                 return this.refreshToken((err, data) => {
                   if (err) {
                     return reject(err);
                   }
-
                   return resolve(this.api(method, url, postData));
                 });
-              } else {
-                return reject(json.error);
+              }
+              else {
+                return reject(data.error);
               }
             }
 
-            return resolve(json);
+            return resolve(data);
           });
         })
         .on("error", (err) => {

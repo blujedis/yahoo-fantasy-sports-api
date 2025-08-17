@@ -13,17 +13,15 @@ declare module 'yahoo-fantasy' {
 	}
 
 	export interface YahooRefreshTokenResult {
-		access_token?: string;
-		refresh_token?: string;
+		access_token: string;
+		refresh_token: string;
+		id_token: string;
 	}
 
 	export interface YahooAuthCallbackResult extends YahooRefreshTokenResult {
-		id_token?: string;
-		token_type?: string;
+		token_type: string;
 		expires_in: number;
 		state?: string;
-		error?: string;
-		error_description?: string;
 	}
 
 	export interface YahooUserInfoResult {
@@ -34,23 +32,23 @@ declare module 'yahoo-fantasy' {
 	export type YahooCallback<T> = (error: null | Error, result: T) => void;
 
 	export interface YahooUserInfo {
-		birthdate: string;
+		sub: string;
+		name: string;
+		given_name: string;
+		family_name: string;
+		nickname: string;
+		locale: string;
 		email: string;
 		email_verified: boolean;
-		family_name: string;
-		gender: string;
-		given_name: string;
-		locale: string;
-		name: string;
-		nickname: string;
-		picture: string;
 		profile_images: {
 			image128: string;
 			image192: string;
 			image32: string;
 			image64: string;
 		};
-		sub: string;
+		picture: string;
+		gender: string;
+		birthdate: string;
 	}
 
 	class YahooFantasy {
