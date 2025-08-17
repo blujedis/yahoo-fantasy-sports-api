@@ -3,20 +3,35 @@ declare module 'yahoo-fantasy' {
 
 	export interface YahooAuthResult {
 		redirectUri?: string;
-		status?: number;
+		status: number;
 		data?: any;
 	}
 
+	export interface ResponseObject {
+		redirect: (location: string) => void;
+		send: (data: any) => void;
+	}
+
 	export interface YahooRefreshTokenResult {
-		id_token?: string;
 		access_token?: string;
 		refresh_token?: string;
-		expires_in: number;
 	}
 
 	export interface YahooAuthCallbackResult extends YahooRefreshTokenResult {
+		id_token?: string;
+		token_type?: string;
+		expires_in: number;
 		state?: string;
+		error?: string;
+		error_description?: string;
 	}
+
+	export interface YahooUserInfoResult {
+		status: number;
+		data: any;
+	}
+
+	export type YahooCallback<T> = (error: null | Error, result: T) => void;
 
 	export interface YahooUserInfo {
 		birthdate: string;
@@ -47,18 +62,16 @@ declare module 'yahoo-fantasy' {
 			onRefreshToken?: (...args: any[]) => void,
 			redirectUri?: string
 		);
-		auth (callback: (result: YahooAuthResult) => void): void;
-		auth (config: { state: string, scope: string; }, callback: (error: null | Error, result?: YahooAuthResult) => void): void;
-		authCallback (
-			request: any,
-			callback: (error: null | Error, result?: YahooAuthCallbackResult) => void
-		): void;
-		userInfo (callback: (error: Error, info?: YahooUserInfo) => void): void;
-		setUserToken (token: string): void;
-		setRefreshToken (refreshTokens: string): void;
+		auth (cb: YahooAuthHandler): void;
+		auth (config: { state?: string, scope?: string; }, cb: YahooCallback<YahooAuthResult>): void;
+		authCallback (request: any, cb: YahooCallback<YahooAuthCallbackResult>): void;
+		userInfo (cb: YahooCallback<YahooUserInfo>): void;
+		setUserToken (accessToken: string): void;
+		setRefreshToken (refreshToken: string): void;
+		setIdToken (idToken: string): void;
 		refreshToken (callback: (result: YahooRefreshTokenResult) => void);
 		api (...args: any[]): Promise<any>;
-		[key: string]: any;
+		[key: string]: any; // fallback until more types are created.
 	}
 
 	export default YahooFantasy;
